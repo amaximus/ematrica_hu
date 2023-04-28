@@ -26,7 +26,8 @@ search for <i>Highway Sticker Information Hungary</i> in the Integrations.<br />
 
 The entity created will be named based on the specified plate number e.g. `sensor.abc123` (see example configuration below)
 
-The state of the sensor will be the number of days till the first highway sticker expires.
+The state of the sensor will be the number of days till the first highway sticker expires. The sensor data is updated
+every 12 hours as the solution is somehow time and resource consuming.
 
 The sensor will also report in attributes all your valid highway stickers:
 

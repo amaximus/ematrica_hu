@@ -2,16 +2,12 @@ import asyncio
 
 from datetime import timedelta
 from datetime import datetime
-#import json
 import logging
 import lxml.html as lh
-#import re
 import voluptuous as vol
-#import aiohttp
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import ATTR_ATTRIBUTION
-#from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.discovery import async_load_platform
@@ -69,7 +65,6 @@ class EMatricaHUSensor(Entity):
         self._state = None
         self._ematrica = []
         self._icon = DEFAULT_ICON
-        #self._session = async_get_clientsession(self._hass)
         self._attr = {}
 
     @property
