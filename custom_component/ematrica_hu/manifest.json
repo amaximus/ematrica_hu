@@ -1,0 +1,11 @@
+{
+  "domain": "ematrica_hu",
+  "name": "Highway Sticker Information Hungary",
+  "documentation": "https://github.com/amaximus/ematrica_hu",
+  "dependencies": [],
+  "config_flow": false,
+  "codeowners": ["@amaximus"],
+  "version": "0.0.1",
+  "iot_class": "cloud_polling",
+  "requirements": ["lxml", "selenium"]
+}
