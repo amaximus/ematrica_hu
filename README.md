@@ -4,7 +4,7 @@
 
 # Hungarian highway sticker information for Home Assistant
 
-This custom component get Hungarian highway sticker information in for your car from
+This custom component gets Hungarian highway sticker information for your car from
 [https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes](https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes)
 
 #### Prerequisites
@@ -24,7 +24,7 @@ search for <i>Highway Sticker Information Hungary</i> in the Integrations.<br />
 
 #### General
 
-The entity created will be named e.g. `sensor.abc123` (see example configuration below)
+The entity created will be named based on the specified plate number e.g. `sensor.abc123` (see example configuration below)
 
 The state of the sensor will be the number of days till the first highway sticker expires.
 
@@ -45,7 +45,7 @@ Define sensor with the following configuration parameters:<br />
 Country code and plate number should be in format accepted by
 [https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes](https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes), namely:
 * country code in fact accepts a pattern for which the top selection should be made
-* platenumber is usually in form of capital letters and number, without spaces, dashes, etc.
+* platenumber is usually in form of capital letters and numbers without spaces, dashes, etc.
 
 #### Example
 ```
