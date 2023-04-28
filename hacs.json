@@ -1,0 +1,7 @@
+{
+  "name": "Highway Sticker Information Hungary",
+  "country": ["HU"],
+  "domains": ["ematrica_hu"],
+  "render_readme": "true",
+  "iot_class": ["Assumed State", "Cloud Polling"]
+}
