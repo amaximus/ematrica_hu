@@ -14,8 +14,8 @@ OS, most probably it will work on that OS as well.
 
 OS packages needed for this component to work are `chromium-browser` and `chromium-chromedriver`.
 
-Python module `selenium` is also required. It is specified as requirement in the manifest file,
-but if it doesn't get installed automatically, install it manually.
+Since there is no public API to use for querying valid highway stickers, python module `selenium` is also required.
+It is specified as requirement in the manifest file, but if it doesn't get installed automatically, install it manually.
 
 #### Installation
 
