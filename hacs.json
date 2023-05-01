@@ -1,6 +1,5 @@
 {
   "name": "Highway Sticker Information Hungary",
   "country": ["HU"],
-  "render_readme": true,
-  "iot_class": ["Assumed State", "Cloud Polling"]
+  "render_readme": true
 }
