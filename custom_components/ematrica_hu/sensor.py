@@ -19,7 +19,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 
 from .const import (
     DOMAIN,
@@ -34,15 +34,16 @@ CONF_ATTRIBUTION = "Data provided by nemzetiutdij.hu"
 CONF_COUNTRY = 'country'
 CONF_PLATENR = 'platenr'
 
-DEFAULT_NAME = 'EMatrica HU'
+DEFAULT_COUNTRY = 'H'
 DEFAULT_ICON = 'mdi:highway'
+DEFAULT_NAME = 'EMatrica HU'
 
 HTTP_TIMEOUT = 5 # secs
 SCAN_INTERVAL = timedelta(hours=12)
 URL = 'https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_COUNTRY): cv.string,
+    vol.Optional(CONF_COUNTRY, default=DEFAULT_COUNTRY): cv.string,
     vol.Required(CONF_PLATENR): cv.string,
 })
 
@@ -65,14 +66,16 @@ class EMatricaHUSensor(Entity):
         self._state = None
         self._ematrica = []
         self._icon = DEFAULT_ICON
+        self._failure = False
         self._attr = {}
 
     @property
     def extra_state_attributes(self):
 
-        self._attr["ematrica"] = self._ematrica
-        self._attr["nrOfStickers"] = len(self._ematrica)
-        self._attr["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        if not self._failure:
+            self._attr["nrOfStickers"] = len(self._ematrica)
+            self._attr["stickers"] = self._ematrica
+            self._attr["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         self._attr["provider"] = CONF_ATTRIBUTION
         return self._attr
@@ -121,43 +124,63 @@ class EMatricaHUSensor(Entity):
             driver.get(URL);
             time.sleep(5)
         except WebDriverException:
+            self._failure = True
             _LOGGER.debug("Could not connect to " + URL)
 
-        # cookie policy
+        if not self._failure:
+            _LOGGER.debug("get cookie")
+            # cookie policy
+            try:
+                button1 = driver.find_element(By.CLASS_NAME, "orange--text")
+                button1.click()
+            except NoSuchElementException:
+                _LOGGER.debug("Could not found cookie button")
+
+        if not self._failure:
+            # countryCode
+            try:
+                cc = driver.find_element('id', 'VehicleNewForm--countryCode')
+                cc.send_keys(self._country)
+                cc.send_keys(Keys.DOWN)
+                cc.send_keys(Keys.ENTER)
+            except NoSuchElementException:
+                self._failure = True
+                _LOGGER.debug("Could not found countryCode element")
+            else:
+                _LOGGER.debug("countryCode set " + cc.get_attribute('value'))
+
+        if not self._failure:
+            # plateNumber
+            try:
+                pn = driver.find_element('id', 'VehicleNewForm--plateNumber')
+                pn.send_keys(self._platenr)
+            except NoSuchElementException:
+                self._failure = True
+                _LOGGER.debug("Could not found plateNumber element")
+            else:
+                _LOGGER.debug("plateNumber set " + pn.get_attribute('value'))
+
+        if not self._failure:
+            try:
+                button = driver.find_element('id', "VehicleNewForm--saveButton")
+                driver.implicitly_wait(10)
+                ActionChains(driver).move_to_element(button).click(button).perform()
+
+                time.sleep(5)
+
+                lines = driver.page_source.replace("\r","").split('\n')
+            except NoSuchElementException:
+                self._failure = True
+                _LOGGER.debug("Could not found submit button")
+            else:
+                _LOGGER.debug("button pressed")
+
         try:
-            button1 = driver.find_element(By.CLASS_NAME, "orange--text")
-            button1.click()
-        except NoSuchElementException:
-            _LOGGER.debug("Could not found cookie button")
-
-        # countryCode
-        try:
-            cc = driver.find_element('id', 'VehicleNewForm--countryCode')
-            cc.send_keys(self._country)
-            cc.send_keys(Keys.DOWN)
-            cc.send_keys(Keys.ENTER)
-        except NoSuchElementException:
-            _LOGGER.debug("Could not found countryCode element")
-
-        # plateNumber
-        try:
-            pn = driver.find_element('id', 'VehicleNewForm--plateNumber')
-            pn.send_keys(self._platenr)
-        except NoSuchElementException:
-            _LOGGER.debug("Could not found plateNumber element")
-
-        try:
-            button = driver.find_element('id', "VehicleNewForm--saveButton")
-            driver.implicitly_wait(10)
-            ActionChains(driver).move_to_element(button).click(button).perform()
-
-            time.sleep(5)
-
-            lines = driver.page_source.replace("\r","").split('\n')
-        except NoSuchElementException:
-            _LOGGER.debug("Could not found submit button")
-
-        driver.quit()
+            driver
+        except NameError:
+            _LOGGER.debug("Could not connect")
+        else:
+            driver.quit()
 
         matched_lines = [line for line in lines if '<span data-v-83d5f0d4="">' in line]
         if len(matched_lines) > 0:
