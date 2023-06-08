@@ -1,5 +1,3 @@
-import asyncio
-
 from datetime import timedelta
 from datetime import datetime
 import logging
@@ -47,8 +45,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_PLATENR): cv.string,
 })
 
-@asyncio.coroutine
-def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     country = config.get(CONF_COUNTRY)
     platenr = config.get(CONF_PLATENR)
 
@@ -89,7 +86,6 @@ class EMatricaHUSensor(Entity):
             f"config: {self.config}]"
         )
 
-    @asyncio.coroutine
     async def async_update(self):
         earliest = 400
         self._ematrica = await self._hass.async_add_executor_job(self.async_get_ematrica)

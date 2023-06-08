@@ -39,7 +39,7 @@ Define sensor with the following configuration parameters:<br />
 ---
 | Name | Optional | `Default` | Version | Description |
 | :---- | :---- | :------- | :----------- | :-----------|
-| country | **N** | `` | 0.0.1 | name of the sensor |
+| country | **Y** | `H` | 0.0.1 | name of the sensor |
 | platenr | **N** | `` | 0.0.1 | plate number |
 ---
 
@@ -54,6 +54,9 @@ platform: ematrica_hu
 country: 'H'
 platenr: 'ABC123'
 ```
+
+You may use custom button card to display the sticker(s):
+![Custom button card displaying sticker](https://raw.githubusercontent.com/amaximus/ematrica_hu/main/lovelace.png)
 
 ## Thanks
 
