@@ -40,19 +40,25 @@ Define sensor with the following configuration parameters:<br />
 | Name | Optional | `Default` | Version | Description |
 | :---- | :---- | :------- | :----------- | :-----------|
 | country | **Y** | `H` | 0.0.1 | name of the sensor |
-| platenr | **N** | `` | 0.0.1 | plate number |
+| delay | **Y** | `0` | 0.2.0 | delay in seconds when multiple such sensors are used. See below. |
+| plateNumber | **N** | `` | 0.0.1 | plate number |
 ---
 
-Country code and plate number should be in format accepted by
+Country code and plateNumber should be in format accepted by
 [https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes](https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes), namely:
 * country code in fact accepts a pattern for which the top selection should be made
-* platenumber is usually in form of capital letters and numbers without spaces, dashes, etc.
+* plate number is usually in form of capital letters and numbers without spaces, dashes, etc.
+
+`delay` is used to flatten the load and interference for webdrivers. When only one sensor is used, you may leave the
+default value (0) meaning no delay for getting data. When multiple such sensors are used, leave an extra 30 secs delay
+between sensors, e.g. ABC123 should use no delay (default), ABC124 should use delay 30, ABC125 should use delay 60, etc.y
+This will also increase the startup time upon Home Assistant restart.
 
 #### Example
 ```
 platform: ematrica_hu
 country: 'H'
-platenr: 'ABC123'
+plateNumber: 'ABC123'
 ```
 
 You may use custom button card to display the sticker(s):

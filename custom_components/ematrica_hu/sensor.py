@@ -2,6 +2,7 @@ from datetime import timedelta
 from datetime import datetime
 import logging
 import lxml.html as lh
+import re
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
@@ -30,37 +31,43 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_ATTRIBUTION = "Data provided by nemzetiutdij.hu"
 CONF_COUNTRY = 'country'
-CONF_PLATENR = 'platenr'
+CONF_DELAY = 'delay'
+CONF_PLATENUMBER = 'plateNumber'
 
 DEFAULT_COUNTRY = 'H'
+DEFAULT_DELAY = 0
 DEFAULT_ICON = 'mdi:highway'
 DEFAULT_NAME = 'EMatrica HU'
 
 HTTP_TIMEOUT = 5 # secs
-SCAN_INTERVAL = timedelta(hours=12)
+SCAN_INTERVAL = timedelta(hours=3)
 URL = 'https://nemzetiutdij.hu/hu/e-matrica/matrica-lekerdezes'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_COUNTRY, default=DEFAULT_COUNTRY): cv.string,
-    vol.Required(CONF_PLATENR): cv.string,
+    vol.Optional(CONF_DELAY, default=DEFAULT_DELAY): cv.string,
+    vol.Required(CONF_PLATENUMBER): cv.string,
 })
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     country = config.get(CONF_COUNTRY)
-    platenr = config.get(CONF_PLATENR)
+    delay = config.get(CONF_DELAY)
+    platenumber = config.get(CONF_PLATENUMBER)
 
     async_add_devices(
-        [EMatricaHUSensor(hass, country, platenr)],update_before_add=True)
+        [EMatricaHUSensor(hass, country, platenumber, delay)],update_before_add=True)
 
 class EMatricaHUSensor(Entity):
 
-    def __init__(self, hass, country, platenr):
+    def __init__(self, hass, country, platenumber, delay):
         """Initialize the sensor."""
         self._hass = hass
         self._country = country
-        self._platenr = platenr
-        self._name = platenr.lower()
+        self._platenumber = platenumber
+        self._name = platenumber.lower()
         self._state = None
+        self._delay = int(re.findall('\d+',delay)[0])
+        self._prevematrica = []
         self._ematrica = []
         self._icon = DEFAULT_ICON
         self._failure = False
@@ -88,7 +95,11 @@ class EMatricaHUSensor(Entity):
 
     async def async_update(self):
         earliest = 400
+        _LOGGER.debug("Starting update on " + self._platenumber)
+        self._prevematrica = self._ematrica
         self._ematrica = await self._hass.async_add_executor_job(self.async_get_ematrica)
+        if len(self._ematrica) == 0:
+            self._ematrica = self._prevematrica
 
         if len(self._ematrica) > 0:
             for item in self._ematrica:
@@ -96,6 +107,7 @@ class EMatricaHUSensor(Entity):
                 if int(val) < earliest:
                     earliest = int(val)
 
+        _LOGGER.debug("Finishing update on " + self._platenumber)
         self._state = earliest
         return self._state
 
@@ -104,6 +116,9 @@ class EMatricaHUSensor(Entity):
         mjson = []
         sp_elements = []
         lines = ""
+
+        time.sleep(self._delay)
+        _LOGGER.debug("Getting data on " + self._platenumber)
 
         capa = DesiredCapabilities.CHROME
         capa["pageLoadStrategy"] = "none"
@@ -115,22 +130,23 @@ class EMatricaHUSensor(Entity):
         options.add_argument('--window-size=1920,1080')
         options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
         options.add_argument('--log-level=2')
+
         try:
             driver = webdriver.Chrome(desired_capabilities=capa,options=options)
+
             driver.get(URL);
-            time.sleep(5)
+            driver.implicitly_wait(5)
         except WebDriverException:
             self._failure = True
-            _LOGGER.debug("Could not connect to " + URL)
+            _LOGGER.debug("Could not connect to " + URL + " for sticker data on " + self._platenumber)
 
         if not self._failure:
-            _LOGGER.debug("get cookie")
             # cookie policy
             try:
                 button1 = driver.find_element(By.CLASS_NAME, "orange--text")
                 button1.click()
             except NoSuchElementException:
-                _LOGGER.debug("Could not found cookie button")
+                _LOGGER.debug("Could not found cookie button... ignoring")
 
         if not self._failure:
             # countryCode
@@ -141,7 +157,7 @@ class EMatricaHUSensor(Entity):
                 cc.send_keys(Keys.ENTER)
             except NoSuchElementException:
                 self._failure = True
-                _LOGGER.debug("Could not found countryCode element")
+                _LOGGER.debug("Could not found countryCode element for " + self._platenumber)
             else:
                 _LOGGER.debug("countryCode set " + cc.get_attribute('value'))
 
@@ -149,17 +165,17 @@ class EMatricaHUSensor(Entity):
             # plateNumber
             try:
                 pn = driver.find_element('id', 'VehicleNewForm--plateNumber')
-                pn.send_keys(self._platenr)
+                pn.send_keys(self._platenumber)
             except NoSuchElementException:
                 self._failure = True
-                _LOGGER.debug("Could not found plateNumber element")
+                _LOGGER.debug("Could not found plateNumber element for " + self._platenumber)
             else:
                 _LOGGER.debug("plateNumber set " + pn.get_attribute('value'))
 
         if not self._failure:
             try:
                 button = driver.find_element('id', "VehicleNewForm--saveButton")
-                driver.implicitly_wait(10)
+                driver.implicitly_wait(5)
                 ActionChains(driver).move_to_element(button).click(button).perform()
 
                 time.sleep(5)
@@ -167,15 +183,13 @@ class EMatricaHUSensor(Entity):
                 lines = driver.page_source.replace("\r","").split('\n')
             except NoSuchElementException:
                 self._failure = True
-                _LOGGER.debug("Could not found submit button")
+                _LOGGER.debug("Could not found submit button for " + self._platenumber)
             else:
-                _LOGGER.debug("button pressed")
+                _LOGGER.debug("button pressed for " + self._platenumber)
 
-        try:
-            driver
-        except NameError:
-            _LOGGER.debug("Could not connect")
-        else:
+        if not driver.service.process:
+            _LOGGER.debug("webdriver quit unexpectedly")
+        if driver.service.process:
             driver.quit()
 
         matched_lines = [line for line in lines if '<span data-v-83d5f0d4="">' in line]
