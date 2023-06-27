@@ -152,6 +152,7 @@ class EMatricaHUSensor(Entity):
             # countryCode
             try:
                 cc = driver.find_element('id', 'VehicleNewForm--countryCode')
+                driver.implicitly_wait(5)
                 cc.send_keys(self._country)
                 cc.send_keys(Keys.DOWN)
                 cc.send_keys(Keys.ENTER)
