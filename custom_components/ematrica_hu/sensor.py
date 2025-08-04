@@ -13,11 +13,9 @@ from homeassistant.helpers.discovery import async_load_platform
 
 import time
 from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 
 from .const import (
@@ -66,7 +64,7 @@ class EMatricaHUSensor(Entity):
         self._platenumber = platenumber
         self._name = platenumber.lower()
         self._state = None
-        self._delay = int(re.findall('\d+',delay)[0])
+        self._delay = int(re.findall(r"\d+",delay)[0])
         self._prevematrica = []
         self._ematrica = []
         self._icon = DEFAULT_ICON
@@ -116,29 +114,31 @@ class EMatricaHUSensor(Entity):
         mjson = []
         sp_elements = []
         lines = ""
+        driver = None
 
         time.sleep(self._delay)
         _LOGGER.debug("Getting data on " + self._platenumber)
 
-        capa = DesiredCapabilities.CHROME
-        capa["pageLoadStrategy"] = "none"
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless=new')
+        options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-gpu')
         options.add_argument('--single-process')
         options.add_argument('--window-size=1920,1080')
+        options.add_argument(' --user-data-dir=/tmp/chromedriver')
         options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
         options.add_argument('--log-level=2')
+        options.page_load_strategy = "none"
 
         try:
-            driver = webdriver.Chrome(desired_capabilities=capa,options=options)
+            driver = webdriver.Chrome(options=options)
 
             driver.get(URL);
             driver.implicitly_wait(5)
-        except WebDriverException:
+        except WebDriverException as err:
             self._failure = True
             _LOGGER.debug("Could not connect to " + URL + " for sticker data on " + self._platenumber)
+            _LOGGER.error(f'error: {err} of type: {type(err)}')
 
         if not self._failure:
             # cookie policy
@@ -177,7 +177,7 @@ class EMatricaHUSensor(Entity):
             try:
                 button = driver.find_element('id', "VehicleNewForm--saveButton")
                 driver.implicitly_wait(5)
-                ActionChains(driver).move_to_element(button).click(button).perform()
+                button.click()
 
                 time.sleep(5)
 
@@ -188,12 +188,11 @@ class EMatricaHUSensor(Entity):
             else:
                 _LOGGER.debug("button pressed for " + self._platenumber)
 
-        if not driver.service.process:
-            _LOGGER.debug("webdriver quit unexpectedly")
-        if driver.service.process:
+        if driver is not None:
             driver.quit()
 
         matched_lines = [line for line in lines if '<span data-v-83d5f0d4="">' in line]
+        _LOGGER.debug("matched lines " + str(matched_lines))
         if len(matched_lines) > 0:
             doc = lh.fromstring(matched_lines[0])
             sp_elements = doc.xpath('//span/text()')
