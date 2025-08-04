@@ -39,7 +39,7 @@ Define sensor with the following configuration parameters:<br />
 ---
 | Name | Optional | `Default` | Version | Description |
 | :---- | :---- | :------- | :----------- | :-----------|
-| country | **Y** | `H` | 0.0.1 | name of the sensor |
+| country | **Y** | `H` | 0.0.1 | country code issuing the plate number |
 | delay | **Y** | `0` | 0.2.0 | delay in seconds when multiple such sensors are used. See below. |
 | plateNumber | **N** | `` | 0.0.1 | plate number |
 ---
